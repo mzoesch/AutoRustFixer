@@ -11,6 +11,9 @@ def main(req: OnErrorRequest) -> OnErrorResponse:
         result = _fix_unresolved(match.group(1), req)
         if result.response != EErrorResponse.IGNORE:
             return result
+        result = _make_scoped(match.group(1), req)
+        if result.response != EErrorResponse.IGNORE:
+            return result
 
     if result is None:
         return OnErrorResponse(response=EErrorResponse.IGNORE, error='Failed to match error message with expected pattern.')
@@ -34,3 +37,21 @@ def _fix_unresolved(crate: str, req: OnErrorRequest) -> OnErrorResponse:
             )
 
     return OnErrorResponse(response=EErrorResponse.IGNORE, error='Failed to match the compiler error with expected pattern.')
+
+
+def _make_scoped(symbol, req: OnErrorRequest) -> OnErrorResponse:
+    children = req.msg.res.get('children', {})
+    for child in children:
+        if match := re.search(r'module `(.*)` exists but is inaccessible', child.get('message', '')):
+            span = get_span(child)
+            if span is None:
+                return OnErrorResponse(response=EErrorResponse.IGNORE, error='Unexpected error message format.')
+            file, line, col = get_begin_of_span(get_span(req.msg.res))
+            with open(file, 'r') as f:
+                content = f.read()
+            resulting_code = insert_at_line_based(content, line, col, f'{non_overlapping_prefix(match.group(1), symbol)}')
+            return OnErrorResponse(response=EErrorResponse.FIX
+               , fixes=[(file, resulting_code, f'[E0433]: Added new scope to symbol `{symbol}`.')]
+               )
+
+    return OnErrorResponse(response=EErrorResponse.IGNORE, error='Unexpected error message format.')

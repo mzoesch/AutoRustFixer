@@ -1,3 +1,6 @@
+# Auto Rust Fixer
+This project leverages Rust compiler error messages and feedback from the `rust-analyzer` tool to automatically fix common errors in LLM-produced erroneous Rust code by automatically applying fixes recommended by the Rust framework or by searching all provided code for common mistake patterns. 
+
 # Getting up and running
 - Setup environment with Docker (only run **once**; on the **first launch**):
     ```bash 

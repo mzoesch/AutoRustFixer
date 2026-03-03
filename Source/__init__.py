@@ -1,7 +1,8 @@
-from Source import E0425, E0433, E0451, E0603
+from Source import E0308, E0425, E0433, E0451, E0603
 
 
 error_fix_fns = {
+    'E0308': E0308.main,
     'E0425': E0425.main,
     'E0433': E0433.main,
     'E0451': E0451.main,

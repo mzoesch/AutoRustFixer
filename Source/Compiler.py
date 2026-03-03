@@ -27,9 +27,11 @@ class ECompilerMessage(Enum):
 class CompilerMessage:
     discardable_msgs = [
         r'\d+ warning emitted',
+        r'\d+ warnings emitted',
         r'aborting due to \d+ previous error',
         r'For more information about (this|an) error, try `rustc --explain E\d+`\.',
         r'Some errors have detailed explanations: (E\d+,\s*)+ E\d+\.',
+        r'module `.*` should have a snake case name',
         ]
 
     def __init__(self, line: str) -> None:
@@ -50,6 +52,9 @@ class CompilerMessage:
                 print(repr(self))
                 raise ValueError(f'Compiler error is not code related:\n\n{self}')
             return
+        if CompilerMessage.is_discardable(self.msg):
+            self.error_code = None
+        return
 
     @staticmethod
     def find_error_code(res: dict) -> str | None:
@@ -96,7 +101,7 @@ def compile(req: Request) -> Response:
 
 
 def _compile(req: Request) -> list[str]:
-    cmd = [req.compiler, '--error-format=json', str(req.file), '-o', str(req.o)]
+    cmd = [req.compiler, '--error-format=json', str(req.file), '-o', str(req.o), '-A', 'dead_code']
     if req.crate_type is not None:
         cmd.append(f'--crate-type={req.crate_type}')
 
